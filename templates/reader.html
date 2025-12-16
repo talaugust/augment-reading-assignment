@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Augmented Reader</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js"></script>
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+
+    <style>
+        body { 
+            font-family: 'Georgia', serif; 
+            background: #f4f4f9; 
+            color: #333; 
+            padding: 20px; 
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 50px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            line-height: 1.8;
+        }
+        
+        /* THE AUGMENTATION STYLE */
+        /* We use a dotted underline to indicate interactivity */
+        mark.difficult-term {
+            background: transparent;
+            border-bottom: 2px dotted #ff5722; /* Orange dotted line */
+            color: inherit;
+            cursor: help;
+            padding-bottom: 1px;
+        }
+        
+        mark.difficult-term:hover {
+            background-color: rgba(255, 87, 34, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header" style="text-align: center; margin-bottom: 30px;">
+        <h1>Augmented Reader</h1>
+        <p>Currently highlighting <strong>{{ terms|length }}</strong> rare terms.</p>
+    </div>
+
+    <div class="container" id="document-text">
+        {{ content | safe }}
+    </div>
+
+    <script>
+        // 1. Get the data from Python (passed via Jinja2)
+        const difficultTerms = {{ terms | tojson }};
+        
+        // 2. Select the container
+        const context = document.querySelector("#document-text");
+        const instance = new Mark(context);
+
+        // 3. Apply the Augmentation
+        instance.mark(difficultTerms, {
+            element: "mark",
+            className: "difficult-term",
+            accuracy: "exactly",
+            separateWordSearch: false,
+            each: function(elem) {
+                // 4. Attach Tooltip (Tippy.js)
+                tippy(elem, {
+                    content: `<strong>${elem.innerText}</strong>: <br><em>Rare term detected.</em>`,
+                    allowHTML: true,
+                    theme: 'light',
+                    interactive: true
+                });
+            }
+        });
+        
+        console.log("Augmentation complete. Terms marked:", difficultTerms);
+    </script>
+</body>
+</html>

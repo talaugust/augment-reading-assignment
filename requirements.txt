@@ -1,0 +1,4 @@
+flask
+pymupdf
+wordfreq
+# optional: papermage (commented out to keep startup fast, uncomment if needed)
