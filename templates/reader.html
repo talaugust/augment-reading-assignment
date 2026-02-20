@@ -4,39 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Augmented Reader</title>
-    
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js"></script>
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     <script src="https://unpkg.com/tippy.js@6"></script>
 
     <style>
-        body { 
-            font-family: 'Georgia', serif; 
-            background: #f4f4f9; 
-            color: #333; 
-            padding: 20px; 
+        body {
+            font-family: 'Georgia', serif;
+            background: #f4f4f9;
+            color: #333;
+            padding: 20px;
         }
-        .container {
-            max-width: 800px;
+
+        #pdf-container {
+            max-width: 900px;
             margin: 0 auto;
-            background: white;
-            padding: 50px;
+        }
+
+        /* Each rendered PDF page: canvas + text layer stacked */
+        .pdf-page {
+            position: relative;
+            margin: 0 auto 20px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            line-height: 1.8;
+            background: white;
         }
-        
+
+        /* PDF.js text layer — invisible spans positioned over the canvas */
+        .textLayer {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            line-height: 1;
+            -webkit-text-size-adjust: none;
+        }
+
+        .textLayer span {
+            color: transparent;
+            position: absolute;
+            white-space: pre;
+            cursor: text;
+            transform-origin: 0% 0%;
+        }
+
         /* THE AUGMENTATION STYLE */
-        /* We use a dotted underline to indicate interactivity */
+        /* Shows as a semi-transparent highlight over the rendered PDF text */
         mark.difficult-term {
-            background: transparent;
-            border-bottom: 2px dotted #ff5722; /* Orange dotted line */
-            color: inherit;
+            background-color: rgba(255, 87, 34, 0.25);
+            border-bottom: 2px dotted #ff5722;
+            color: transparent; /* keep text invisible so canvas shows through */
             cursor: help;
-            padding-bottom: 1px;
         }
-        
+
         mark.difficult-term:hover {
-            background-color: rgba(255, 87, 34, 0.1);
+            background-color: rgba(255, 87, 34, 0.45);
         }
     </style>
 </head>
@@ -47,36 +69,92 @@
         <p>Currently highlighting <strong>{{ terms|length }}</strong> rare terms.</p>
     </div>
 
-    <div class="container" id="document-text">
-        {{ content | safe }}
-    </div>
+    <div id="pdf-container"></div>
 
     <script>
-        // 1. Get the data from Python (passed via Jinja2)
+        // 1. Get the difficult terms from Python (passed via Jinja2)
         const difficultTerms = {{ terms | tojson }};
-        
-        // 2. Select the container
-        const context = document.querySelector("#document-text");
-        const instance = new Mark(context);
 
-        // 3. Apply the Augmentation
-        instance.mark(difficultTerms, {
-            element: "mark",
-            className: "difficult-term",
-            accuracy: "exactly",
-            separateWordSearch: false,
-            each: function(elem) {
-                // 4. Attach Tooltip (Tippy.js)
-                tippy(elem, {
-                    content: `<strong>${elem.innerText}</strong>: <br><em>Rare term detected.</em>`,
-                    allowHTML: true,
-                    theme: 'light',
-                    interactive: true
-                });
+        // 2. Point PDF.js at its worker script
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        async function renderPDF() {
+            const pdf = await pdfjsLib.getDocument('/pdf').promise;
+            const container = document.getElementById('pdf-container');
+
+            // Render each page sequentially
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                const page    = await pdf.getPage(pageNum);
+                const viewport = page.getViewport({ scale: 1.5 });
+
+                // Page wrapper — canvas and text layer stack inside this
+                const pageWrapper = document.createElement('div');
+                pageWrapper.className = 'pdf-page';
+                pageWrapper.style.width  = `${viewport.width}px`;
+                pageWrapper.style.height = `${viewport.height}px`;
+
+                // Canvas — the visual rendering of the PDF page
+                const canvas = document.createElement('canvas');
+                canvas.width  = viewport.width;
+                canvas.height = viewport.height;
+                await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+                // Text layer — transparent spans positioned over the canvas
+                // mark.js will search this layer to find and wrap difficult terms
+                const textLayerDiv = document.createElement('div');
+                textLayerDiv.className = 'textLayer';
+                const textContent = await page.getTextContent();
+                await pdfjsLib.renderTextLayer({
+                    textContentSource: textContent,
+                    container: textLayerDiv,
+                    viewport,
+                    textDivs: []
+                }).promise;
+
+                pageWrapper.appendChild(canvas);
+                pageWrapper.appendChild(textLayerDiv);
+                container.appendChild(pageWrapper);
             }
-        });
-        
-        console.log("Augmentation complete. Terms marked:", difficultTerms);
+
+            // 3. Apply the Augmentation — mark.js searches the text layer
+            const markInstance = new Mark(container);
+            markInstance.mark(difficultTerms, {
+                element: 'mark',
+                className: 'difficult-term',
+                accuracy: 'exactly',
+                separateWordSearch: false,
+                each: function(elem) {
+                    // =========================================================
+                    // YOUR TASK (2/2): Attach a tooltip that fetches a real
+                    // definition from your /define route.
+                    //
+                    // Use tippy() to create a tooltip on `elem`. In the onShow
+                    // callback, call fetch() to GET /define/<word>, then use
+                    // instance.setContent() to display the returned definition.
+                    //
+                    // Use a `fetched` flag so the API is only called once per word.
+                    //
+                    // HINTS:
+                    //   - Start the tooltip content as 'Loading...'
+                    //   - Fetch URL: `/define/${encodeURIComponent(elem.innerText.toLowerCase())}`
+                    //   - The response JSON has the shape: { "definition": "..." }
+                    //   - tippy docs for dynamic content:
+                    //     https://atomiks.github.io/tippyjs/v6/ajax/
+                    // =========================================================
+                    tippy(elem, {
+                        content: 'Hover for definition...',
+                        allowHTML: true,
+                        theme: 'light',
+                        interactive: true,
+                    });
+                }
+            });
+
+            console.log('Augmentation complete. Terms marked:', difficultTerms);
+        }
+
+        renderPDF();
     </script>
 </body>
 </html>

@@ -1,4 +1,5 @@
 flask
 pymupdf
 wordfreq
+requests
 # optional: papermage (commented out to keep startup fast, uncomment if needed)
