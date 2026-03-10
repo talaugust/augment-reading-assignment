@@ -13,8 +13,8 @@ app = Flask(__name__)
 # We consider anything below 4.0 to be "rare/difficult".
 DIFFICULTY_THRESHOLD = 4.0
 
-# Load your API key from the environment (set with `export GEMINI_API_KEY=...`)
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+# Load your API key from the environment (set with `export API_KEY=...`)
+API_KEY = os.getenv("API_KEY", "")
 
 
 def extract_difficult_terms(text):
@@ -44,18 +44,25 @@ def define(word):
     # =========================================================
     # YOUR TASK (1/2): Implement this route.
     #
-    # Call the Gemini API to return a one-sentence definition
-    # of `word`, then return it as JSON: {"definition": "..."}
+    # Call an LLM API to return a one-sentence definition of
+    # `word`, then return it as JSON: {"definition": "..."}
     #
-    # ENDPOINT:
-    #   url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    # This uses the OpenAI-compatible API format, which works
+    # for Illinois Chat, Gemini, and most other LLM services.
+    #
+    # ENDPOINT (pick your service):
+    #   Illinois Chat: use the URL shown on your API key page
+    #   Gemini:        "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+    #
+    # HEADERS (pass as the `headers=` argument to requests.post):
+    #   {"Authorization": f"Bearer {API_KEY}"}
     #
     # REQUEST BODY (pass as the `json=` argument to requests.post):
-    #   {"contents": [{"parts": [{"text": "<your prompt here>"}]}]}
+    #   {"model": "<your model name>", "messages": [{"role": "user", "content": "<prompt>"}]}
     #
     # EXTRACTING THE RESPONSE TEXT:
     #   data = response.json()
-    #   text = data["candidates"][0]["content"]["parts"][0]["text"]
+    #   text = data["choices"][0]["message"]["content"]
     #
     # SUGGESTED PROMPT:
     #   f"Define the word '{word}' in exactly one plain sentence."

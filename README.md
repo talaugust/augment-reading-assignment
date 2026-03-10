@@ -17,9 +17,13 @@ Both locations are marked with `YOUR TASK` comments.
 
 ## Initial Setup
 
-### 1. Install dependencies
+### 1. Setup local environment and install dependencies
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m ensurepip --upgrade
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
@@ -33,27 +37,34 @@ Place a PDF named `sample.pdf` in the project root. Any PDF works — a Wikipedi
 
 You need an API key for an LM service. 
 
-**Option A — Google Gemini (recommended)**
+**Option A — Google Gemini (can’t use your Illinois account)**
 1. Go to [aistudio.google.com](https://aistudio.google.com)
 2. Sign in with your Google account 
 3. Click **Get API key** → **Create API key** You might need to create a new project. 
 4. Copy the key
 
-The stub code in `app.py` is already written for the Gemini API (`gemini-1.5-flash`).
+**Option B — Illinois Chat (can use your Illinois account)**
+1. Go to [https://ilchat.mss.illinois.edu/chat](https://ilchat.mss.illinois.edu/chat)
+2. Sign in with your Illinois account 
+3. Click **Make Project** → **API key** You might need to create a new project. 
+4. Copy the key (there is also details about how to make a request)
+
+
+The stub code in `app.py` is already written in the OpenAI API form, this will work for Illinois Chat and many other services (e.g., if you want to provide one of your own API keys)
 
 
 ### 4. Set your API key as an environment variable
 
-Run this in your terminal or powershell. 
+Run this in your terminal or powershell. This will work locally and on Codespaces.
 
 **Mac / Linux / GitHub Codespaces terminal:**
 ```bash
-export GEMINI_API_KEY="paste-your-key-here"
+export API_KEY="paste-your-key-here"
 ```
 
 **Windows (PowerShell):**
 ```powershell
-$env:GEMINI_API_KEY="paste-your-key-here"
+$env: API_KEY="paste-your-key-here"
 ```
 
 > **GitHub Codespaces:** You can also store the key as a Codespaces secret so you don't have to re-export it each session:
@@ -67,7 +78,7 @@ python app.py
 
 You might need to use python3.
 
-Then open [http://localhost:3000](http://localhost:3000) in your browser.
+Then open [http://localhost:3000](http://localhost:3000) in your browser. This will work locally and on Codespaces
 
 **GitHub Codespaces:** The Ports tab (bottom panel) will show port 3000 with a forwarded URL — click the globe icon to open it.
 
@@ -78,6 +89,12 @@ Then open [http://localhost:3000](http://localhost:3000) in your browser.
 Flask runs in **debug mode** by default (see `app.py` line 68), so it **automatically restarts** whenever you save a Python file. Just refresh your browser.
 
 For changes to `templates/reader.html`, a browser refresh is all you need — no restart required.
+
+---
+
+## Seeing Your Changes
+
+Follow instructions on the [class assignment](https://docs.google.com/document/d/1NGtPpnV3A6gqBQkCgehUFBsNUqfbF86ByYmGHQTBo7I/edit?usp=sharing).
 
 ---
 
