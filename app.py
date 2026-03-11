@@ -66,6 +66,9 @@ def define(word):
     #
     # SUGGESTED PROMPT:
     #   f"Define the word '{word}' in exactly one plain sentence."
+
+    # HINT: an example request body for Illinois Chat is in example_call.py. Adjust as needed for your service.
+
     # =========================================================
 
     return jsonify({"definition": "Not yet implemented."})
